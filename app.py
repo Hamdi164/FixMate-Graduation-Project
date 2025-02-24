@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import os
-import json
 from datetime import datetime, timezone
 from groq import Groq
 from dotenv import load_dotenv
@@ -113,7 +112,6 @@ def generate_ai_response(user_message):
 def webhook():
     """معالجة الطلبات القادمة والردود"""
     try:
-        # قراءة البيانات مع ضمان JSON صحيح
         data = request.get_json(force=True, silent=True)
 
         if not data or 'message' not in data:
@@ -133,7 +131,6 @@ def webhook():
 
 @app.route('/history', methods=['GET'])
 def history():
-    """إرجاع سجل المحادثات"""
     return jsonify({"chat_history": chat_history})
 
 
