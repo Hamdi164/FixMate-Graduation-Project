@@ -18,29 +18,14 @@ if not api_key:
 client = Groq(api_key=api_key)
 
 
-CHAT_LOG_FILE = os.path.join(os.getcwd(), 'chat_log.jsonl')
+chat_history = []
 
 def save_chat_log(user_message, assistant_message):
-    chat_entry = {
+    chat_history.append({
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "user_message": user_message,
         "assistant_message": assistant_message
-    }
-    with open(CHAT_LOG_FILE, 'a') as f:
-        f.write(json.dumps(chat_entry) + "\n")
-
-def load_chat_history():
-    """Load the entire chat history from the log file."""
-    if not os.path.exists(CHAT_LOG_FILE):
-        return []
-    chat_records = []
-    with open(CHAT_LOG_FILE, 'r') as f:
-        for line in f:
-            try:
-                chat_records.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-    return chat_records
+    })
 
 PROMPTS = {
         "الخدمات المتاحة": (
@@ -126,9 +111,9 @@ def generate_ai_response(user_message):
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Endpoint to handle incoming messages and generate responses."""
+    """معالجة الطلبات القادمة والردود"""
     try:
-        # إجبار Flask على محاولة قراءة JSON حتى لو لم يكن Content-Type مضبوطًا بشكل صحيح
+        # قراءة البيانات مع ضمان JSON صحيح
         data = request.get_json(force=True, silent=True)
 
         if not data or 'message' not in data:
@@ -139,16 +124,19 @@ def webhook():
 
         save_chat_log(new_user_message, assistant_message)
 
-        return jsonify({"assistant_message": assistant_message})
+        return jsonify({
+            "assistant_message": assistant_message,
+            "chat_history": chat_history  # إرجاع السجل مباشرة
+        })
 
     except Exception as e:
         return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
 
 @app.route('/history', methods=['GET'])
 def history():
-    """Endpoint to fetch all chat history."""
-    chat_history = load_chat_history()
+    """إرجاع سجل المحادثات"""
     return jsonify({"chat_history": chat_history})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=True)
