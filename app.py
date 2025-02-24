@@ -3,21 +3,25 @@ import os
 import json
 from datetime import datetime, timezone
 from groq import Groq
-import markdown
-from bs4 import BeautifulSoup
+from dotenv import load_dotenv  # تحميل المتغيرات البيئية
+
+# تحميل متغيرات البيئة من ملف .env (إذا كان موجودًا)
+load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize the Groq client with your API key
-client = Groq(
-    api_key='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'
-)
+api_key = os.getenv("GROQ_API_KEY")
 
-# File where chat logs will be saved
+if not api_key:
+    raise ValueError("ERROR: GROQ_API_KEY not found! Please set it in your environment variables.")
+
+
+client = Groq(api_key=api_key)
+
+
 CHAT_LOG_FILE = os.path.join(os.getcwd(), 'chat_log.jsonl')
 
 def save_chat_log(user_message, assistant_message):
-    """Append a new chat entry with a timestamp to the log file."""
     chat_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "user_message": user_message,
@@ -30,14 +34,14 @@ def load_chat_history():
     """Load the entire chat history from the log file."""
     if not os.path.exists(CHAT_LOG_FILE):
         return []
-    history = []
+    chat_records = []
     with open(CHAT_LOG_FILE, 'r') as f:
         for line in f:
             try:
-                history.append(json.loads(line))
+                chat_records.append(json.loads(line))
             except json.JSONDecodeError:
                 continue
-    return history
+    return chat_records
 
 PROMPTS = {
         "الخدمات المتاحة": (
@@ -118,7 +122,7 @@ def generate_ai_response(user_message):
             stream=False,
         )
         return chat_completion.choices[0].message.content.strip()
-    except Exception as e:
+    except Exception:
         return "عذرًا، حدث خطأ أثناء معالجة سؤالك. يرجى المحاولة مرة أخرى لاحقًا."
 
 @app.route('/webhook', methods=['POST'])
