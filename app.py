@@ -126,7 +126,6 @@ def webhook():
 
         return jsonify({
             "assistant_message": assistant_message,
-            "chat_history": chat_history  # إرجاع السجل مباشرة
         })
 
     except Exception as e:
