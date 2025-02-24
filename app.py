@@ -3,9 +3,8 @@ import os
 import json
 from datetime import datetime, timezone
 from groq import Groq
-from dotenv import load_dotenv  # تحميل المتغيرات البيئية
+from dotenv import load_dotenv
 
-# تحميل متغيرات البيئة من ملف .env (إذا كان موجودًا)
 load_dotenv()
 
 app = Flask(__name__)
