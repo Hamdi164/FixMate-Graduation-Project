@@ -127,19 +127,23 @@ def generate_ai_response(user_message):
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Endpoint to handle incoming messages and generate responses."""
-    if request.content_type != 'application/json':
-        return jsonify({"error": "Invalid Content-Type. Expected application/json"}), 415
+    try:
+        # إجبار Flask على محاولة قراءة JSON حتى لو لم يكن Content-Type مضبوطًا بشكل صحيح
+        data = request.get_json(force=True, silent=True)
 
-    data = request.get_json(silent=True)
-    if not data or 'message' not in data:
-        return jsonify({"error": "Missing 'message' in request body"}), 400
+        if not data or 'message' not in data:
+            return jsonify({"error": "Missing 'message' in request body"}), 400
 
-    new_user_message = data['message']
-    assistant_message = get_fixmate_response(new_user_message)
+        new_user_message = data['message']
+        assistant_message = get_fixmate_response(new_user_message)
 
-    save_chat_log(new_user_message, assistant_message)
+        save_chat_log(new_user_message, assistant_message)
 
-    return jsonify({"assistant_message": assistant_message})
+        return jsonify({"assistant_message": assistant_message})
+
+    except Exception as e:
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+
 
 @app.route('/history', methods=['GET'])
 def history():
