@@ -124,13 +124,18 @@ def generate_ai_response(user_message):
     except Exception:
         return "عذرًا، حدث خطأ أثناء معالجة سؤالك. يرجى المحاولة مرة أخرى لاحقًا."
 
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Endpoint to handle incoming messages and generate responses."""
+
     if request.content_type != 'application/json':
         return jsonify({"error": "Invalid Content-Type. Expected application/json"}), 415
 
-    data = request.get_json(silent=True)
+    data = request.get_json(force=True)  # 🔄 تغيير silent=True إلى force=True
+
+    print("Received Data:", data)  # ✅ تتبع البيانات المستلمة
+
     if not data or 'message' not in data:
         return jsonify({"error": "Missing 'message' in request body"}), 400
 
@@ -141,11 +146,22 @@ def webhook():
 
     return jsonify({"assistant_message": assistant_message})
 
+
 @app.route('/history', methods=['GET'])
 def history():
     """Endpoint to fetch all chat history."""
     chat_history = load_chat_history()
     return jsonify({"chat_history": chat_history})
+
+
+@app.route('/')
+def home():
+    return "Flask App is Running on Vercel!"
+
+
+# ✅ دعم تشغيل Flask على Vercel
+def handler(event, context):
+    return app(event, context)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)), debug=True)
