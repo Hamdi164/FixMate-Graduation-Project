@@ -127,6 +127,9 @@ def generate_ai_response(user_message):
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Endpoint to handle incoming messages and generate responses."""
+    if request.content_type != 'application/json':
+        return jsonify({"error": "Invalid Content-Type. Expected application/json"}), 415
+
     data = request.get_json(silent=True)
     if not data or 'message' not in data:
         return jsonify({"error": "Missing 'message' in request body"}), 400
