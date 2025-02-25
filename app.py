@@ -57,6 +57,15 @@ def detect_language(text):
     except ValueError:
         return "en"
 
+ALLOWED_TOPICS = [
+    "حجز فني", "خدمات الصيانة", "الأسعار", "طرق الدفع", "خدمة العملاء",
+    "تعديل الحجز", "وقت وصول الفني", "الضمان", "أعطال الكهرباء", "مشاكل السباكة",
+    "إصلاحات التكييف", "النجارة"
+]
+
+def is_relevant_question(user_message):
+    return any(topic in user_message for topic in ALLOWED_TOPICS)
+
 def get_fixmate_response(user_message):
     user_lang = detect_language(user_message)
 
@@ -73,6 +82,14 @@ def generate_ai_response(user_message):
         "ar": "أنت مساعد ذكي خاص بمنصة FixMate. يجب أن تكون إجاباتك دقيقة ومباشرة دون إضافة أي معلومات غير مطلوبة.",
         "en": "You are a smart assistant for FixMate. Your answers should be precise and direct without adding unnecessary information."
     }
+
+    rejection_message = {
+        "ar": "عذرًا، يمكنني مساعدتك فقط في استفسارات FixMate المتعلقة بالصيانة والحجوزات.",
+        "en": "Sorry, I can only assist with FixMate inquiries related to maintenance and bookings."
+    }
+
+    if not is_relevant_question(user_message):
+        return rejection_message.get(user_lang, rejection_message["en"])
 
     messages = [
         {"role": "system", "content": system_message.get(user_lang, system_message["en"])},
