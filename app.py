@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timezone
 from groq import Groq
 from dotenv import load_dotenv
+from langdetect import detect
 
 load_dotenv()
 
@@ -27,29 +28,54 @@ def save_chat_log(user_message, assistant_message):
     })
 
 PROMPTS = {
-    "الخدمات المتاحة": "خدماتنا المتاحة: السباكة الكهرباء التكييف النجارة كيف يمكنني مساعدتك؟",
-    "إزاي أحجز فني": "طريقة الحجز: يمكنك حجز فني عبر 1- تطبيق FixMate 2- التواصل مع خدمة العملاء مباشرةً",
-    "كام سعر": "الأسعار: تختلف الأسعار حسب الخدمة المطلوبة. يُرجى التواصل معنا لمعرفة التفاصيل الدقيقة.",
-    "الفني هيوصل خلال قد إيه": "وقت الوصول: يعتمد على الفني المتاح وموقعك. عادةً ما يكون بين 30 إلى 60 دقيقة.",
-    "إزاي أكلم خدمة العملاء": "خدمة العملاء: يمكنك التواصل معنا عبر - الهاتف - تطبيق FixMate لحصول على المساعدة الفورية.",
-    "ينفع أغير ميعاد الحجز": "تعديل الحجز: نعم، يمكنك تعديل أو إلغاء الحجز عبر التطبيق. يجب أن يتم التعديل قبل الموعد بساعتين على الأقل.",
-    "هل في ضمان على الإصلاحات": "الضمان: جميع خدماتنا مضمونة لمدة 30 يومًا من تاريخ التنفيذ. لضمان الجودة والراحة.",
-    "إزاي أدفع": "طرق الدفع: نوفر الدفع النقدي والإلكتروني عبر التطبيق لمزيد من السهولة والراحة.",
-    "عندي ماس كهربائي في البيت": "هذه حالة طارئة! سيتم توجيهك إلى أقرب فني متاح فورًا. هل تريد المتابعة؟"
+    "الخدمات المتاحة": {
+        "ar": "خدماتنا المتاحة: السباكة، الكهرباء، التكييف، النجارة. كيف يمكنني مساعدتك؟",
+        "en": "Available services: Plumbing, Electricity, Air Conditioning, Carpentry. How can I help you?"
+    },
+    "إزاي أحجز فني": {
+        "ar": "طريقة الحجز: يمكنك حجز فني عبر 1- تطبيق FixMate 2- التواصل مع خدمة العملاء مباشرةً",
+        "en": "Booking method: You can book a technician via 1- FixMate App 2- Contacting customer service directly."
+    },
+    "كام سعر": {
+        "ar": "الأسعار: تختلف الأسعار حسب الخدمة المطلوبة. يُرجى التواصل معنا لمعرفة التفاصيل الدقيقة.",
+        "en": "Prices: Prices vary depending on the required service. Please contact us for more details."
+    },
+    "الفني هيوصل خلال قد إيه": {
+        "ar": "وقت الوصول: يعتمد على الفني المتاح وموقعك. عادةً ما يكون بين 30 إلى 60 دقيقة.",
+        "en": "Arrival time: It depends on the available technician and your location. Usually between 30 to 60 minutes."
+    },
+    "إزاي أكلم خدمة العملاء": {
+        "ar": "خدمة العملاء: يمكنك التواصل معنا عبر - الهاتف - تطبيق FixMate لحصول على المساعدة الفورية.",
+        "en": "Customer Service: You can contact us via - Phone - FixMate App for immediate assistance."
+    }
 }
 
-
+def detect_language(text):
+    try:
+        lang = detect(text)
+        return "ar" if lang == "ar" else "en"
+    except ValueError:
+        return "en"
 
 def get_fixmate_response(user_message):
+    user_lang = detect_language(user_message)
+
     for key in PROMPTS:
         if key in user_message:
-            return PROMPTS[key]
+            return PROMPTS[key].get(user_lang, PROMPTS[key]["en"])
 
     return generate_ai_response(user_message)
 
 def generate_ai_response(user_message):
+    user_lang = detect_language(user_message)
+
+    system_message = {
+        "ar": "أنت مساعد ذكي خاص بمنصة FixMate. يجب أن تكون إجاباتك دقيقة ومباشرة دون إضافة أي معلومات غير مطلوبة.",
+        "en": "You are a smart assistant for FixMate. Your answers should be precise and direct without adding unnecessary information."
+    }
+
     messages = [
-        {"role": "system", "content": "أنت مساعد ذكي خاص بمنصة FixMate. يجب أن تكون إجاباتك دقيقة ومباشرة دون إضافة أي معلومات غير مطلوبة."},
+        {"role": "system", "content": system_message.get(user_lang, system_message["en"])},
         {"role": "user", "content": user_message}
     ]
 
@@ -69,7 +95,6 @@ def generate_ai_response(user_message):
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """معالجة الطلبات القادمة والردود"""
     try:
         data = request.get_json(force=True, silent=True)
 
