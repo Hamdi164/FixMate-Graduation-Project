@@ -5,16 +5,18 @@ from groq import Groq
 from dotenv import load_dotenv
 from langdetect import detect
 from flask_cors import CORS
-
+import logging
+logging.basicConfig(level=logging.DEBUG)
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# Update CORS to allow all origins and methods
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 api_key = os.getenv("GROQ_API_KEY")
 
 if not api_key:
     raise ValueError("ERROR: GROQ_API_KEY not found! Please set it in your environment variables.")
-
 
 client = Groq(api_key=api_key)
 
@@ -84,13 +86,9 @@ def generate_ai_response(user_message):
         "en": "You are a smart assistant for FixMate. Your answers should be precise and direct without adding unnecessary information."
     }
 
-    rejection_message = {
-        "ar": "عذرًا، يمكنني مساعدتك فقط في استفسارات FixMate المتعلقة بالصيانة والحجوزات.",
-        "en": "Sorry, I can only assist with FixMate inquiries related to maintenance and bookings."
-    }
 
-    if not is_relevant_question(user_message):
-        return rejection_message.get(user_lang, rejection_message["en"])
+
+
 
     messages = [
         {"role": "system", "content": system_message.get(user_lang, system_message["en"])},
@@ -100,7 +98,7 @@ def generate_ai_response(user_message):
     try:
         chat_completion = client.chat.completions.create(
             messages=messages,
-            model="llama-3.3-70b-versatile",
+            model="llama3-70b-8192",
             temperature=0.3,
             max_completion_tokens=200,
             top_p=1,
@@ -134,6 +132,13 @@ def webhook():
 @app.route('/history', methods=['GET'])
 def history():
     return jsonify({"chat_history": chat_history})
+
+# POST /webhook
+#   Request JSON: { "message": "your message" }
+#   Response JSON: { "assistant_message": "assistant reply" }
+
+# GET /history
+#   Response JSON: { "chat_history": [...] }
 
 
 if __name__ == '__main__':
