@@ -4,11 +4,12 @@ from datetime import datetime, timezone
 from groq import Groq
 from dotenv import load_dotenv
 from langdetect import detect
+from flask_cors import CORS
 
 load_dotenv()
 
 app = Flask(__name__)
-
+CORS(app)  # Enable CORS for all routes
 api_key = os.getenv("GROQ_API_KEY")
 
 if not api_key:
